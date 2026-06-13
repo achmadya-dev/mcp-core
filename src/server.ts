@@ -45,7 +45,7 @@ function toJsonSafe(value: unknown): JsonValue {
 export function defineTool<
   TInput extends ZodRawShapeCompat,
   TResult extends JsonValue | void = JsonObject,
->(definition: ToolDefinition<TInput, TResult>): ToolDefinition<TInput, TResult> {
+>(definition: ToolDefinition<TInput, TResult>): RegisterableTool {
   return definition;
 }
 

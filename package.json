@@ -30,13 +30,15 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
+    "prepare": "pnpm run build",
     "prepublishOnly": "pnpm run build"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.29.0"
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "zod": "4.3.6"
   },
   "devDependencies": {
     "@types/node": "22.10.0",

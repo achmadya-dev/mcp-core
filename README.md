@@ -13,16 +13,16 @@ Installed automatically as a dependency of `@achmadya-dev/mcp-*-query` servers.
 ## Usage
 
 ```typescript
-import { defineTool, startMcpServer, envStr, type ToolDefinition } from "@achmadya-dev/mcp-core";
+import { defineTool, schema, startMcpServer, envStr, type ToolDefinition } from "@achmadya-dev/mcp-core";
 
 const myTool = defineTool({
   name: "my_tool",
   description: "Does something",
   inputSchema: {
-    /* zod shape */
+    name: schema.string().describe("Item name"),
   },
   outputSchema: {
-    /* zod shape */
+    ok: schema.boolean(),
   },
   handler: async (args) => ({ ok: true }),
 });
@@ -38,6 +38,7 @@ await startMcpServer({
 
 - `Server`, `defineTool`, `ToolError`, `startMcpServer`
 - `envStr`, `envInt`, `envBool`
-- Types: `ToolDefinition`, `JsonValue`, `RegisterableTool`, `ServerConfig`, …
+- `schema`, `safeParse` — validation abstraction (Zod-backed today; consumers do not import Zod)
+- Types: `Schema`, `InferSchema`, `RawShape`, `ParseResult`, `ToolDefinition`, `JsonValue`, `RegisterableTool`, `ServerConfig`, …
 
 SQL schemas, query validation, and database drivers stay in each `@achmadya-dev/mcp-*-query` package.
