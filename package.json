@@ -1,0 +1,46 @@
+{
+  "name": "@achmadya-dev/mcp-core",
+  "version": "0.1.0",
+  "description": "Shared MCP server runtime, types, and env helpers for @achmadya-dev MCP packages",
+  "type": "module",
+  "author": "achmadya",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/achmadya-dev/mcp-core.git"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "core"
+  ],
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepublishOnly": "pnpm run build"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "1.29.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.0",
+    "typescript": "5.7.2"
+  },
+  "packageManager": "pnpm@10.33.0"
+}
