@@ -42,3 +42,20 @@ await startMcpServer({
 - Types: `Schema`, `InferSchema`, `RawShape`, `ParseResult`, `ToolDefinition`, `JsonValue`, `RegisterableTool`, `ServerConfig`, …
 
 SQL schemas, query validation, and database drivers stay in each `@achmadya-dev/mcp-*-query` package.
+
+## Release
+
+Uses [Changesets](https://github.com/changesets/changesets) — same flow as [`achmadya-dev/mcp`](https://github.com/achmadya-dev/mcp).
+
+1. Add a changeset when you ship user-facing changes:
+
+   ```bash
+   pnpm changeset
+   ```
+
+2. Push to `main`. GitHub Actions opens a **Version packages** PR (version bump + `CHANGELOG.md`).
+
+3. Merge that PR. Next push to `main` publishes to npm (`@achmadya-dev/mcp-core`).
+
+**Remote prerequisites:** GitHub secret `NPM_TOKEN` (npm automation token with publish access to `@achmadya-dev`).
+

@@ -2,17 +2,23 @@ name: Publish
 
 on:
   push:
-    tags:
-      - "v*"
+    branches: [main]
+
+concurrency:
+  group: publish-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       id-token: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - uses: pnpm/action-setup@v4
         with:
@@ -24,8 +30,16 @@ jobs:
           cache: pnpm
           registry-url: https://registry.npmjs.org
 
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run build
-      - run: pnpm publish --no-git-checks
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Create release pull request or publish
+        uses: changesets/action@v1
+        with:
+          publish: pnpm run publish-packages
+          version: pnpm run version-packages
+          commit: "chore: version packages"
+          title: "chore: version packages"
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
