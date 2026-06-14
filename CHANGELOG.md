@@ -1,5 +1,11 @@
 # @achmadya-dev/mcp-core
 
+## 0.3.3
+
+### Patch Changes
+
+- Bundle `@cfworker/json-schema` as a direct dependency so MCP server consumers do not need to install it themselves.
+
 ## 0.3.1
 
 ### Patch Changes

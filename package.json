@@ -1,6 +1,6 @@
 {
   "name": "@achmadya-dev/mcp-core",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "Shared MCP server runtime, types, and env helpers for @achmadya-dev MCP packages",
   "type": "module",
   "author": "achmadya",
@@ -40,6 +40,7 @@
     "node": ">=20"
   },
   "dependencies": {
+    "@cfworker/json-schema": "^4.1.1",
     "@modelcontextprotocol/server": "2.0.0-alpha.2"
   },
   "devDependencies": {
