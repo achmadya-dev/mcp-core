@@ -1,16 +1,18 @@
-import { McpServer as SdkMcpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
-import type { Transport } from "@modelcontextprotocol/sdk/shared/transport.js";
+import {
+  McpServer as SdkMcpServer,
+  StdioServerTransport,
+  type CallToolResult,
+  type StandardSchemaWithJSON,
+  type ToolCallback,
+  type Transport,
+} from "@modelcontextprotocol/server";
 import type {
   JsonObject,
   JsonValue,
   RegisterableTool,
   ServerConfig,
-  ShapeOutput,
   ToolDefinition,
   ToolInput,
-  ZodRawShapeCompat,
 } from "./types.js";
 
 export class ToolError extends Error {
@@ -43,7 +45,7 @@ function toJsonSafe(value: unknown): JsonValue {
 }
 
 export function defineTool<
-  TInput extends ZodRawShapeCompat,
+  TInput extends StandardSchemaWithJSON,
   TResult extends JsonValue | void = JsonObject,
 >(definition: ToolDefinition<TInput, TResult>): RegisterableTool {
   return definition;
@@ -60,9 +62,10 @@ export class Server {
     });
   }
 
-  registerTool<TInput extends ZodRawShapeCompat, TResult extends JsonValue | void = JsonValue>(
-    definition: ToolDefinition<TInput, TResult>
-  ): void {
+  registerTool<
+    TInput extends StandardSchemaWithJSON,
+    TResult extends JsonValue | void = JsonValue,
+  >(definition: ToolDefinition<TInput, TResult>): void {
     const config = {
       title: definition.name,
       description: definition.description,
@@ -71,9 +74,9 @@ export class Server {
     };
 
     const handler = definition.handler;
-    const onCall = async (args: ShapeOutput<TInput>): Promise<CallToolResult> => {
+    const onCall = async (args: ToolInput<TInput>): Promise<CallToolResult> => {
       try {
-        const result = await handler(args as unknown as ToolInput<TInput>);
+        const result = await handler(args);
         const hasOutputSchema = definition.outputSchema !== undefined;
 
         if (hasOutputSchema) {
@@ -104,11 +107,7 @@ export class Server {
       }
     };
 
-    this.server.registerTool(
-      definition.name,
-      config,
-      onCall as Parameters<SdkMcpServer["registerTool"]>[2]
-    );
+    this.server.registerTool(definition.name, config, onCall as ToolCallback<TInput>);
   }
 
   async connect(transport: Transport): Promise<void> {

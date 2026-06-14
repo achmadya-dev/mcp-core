@@ -1,16 +1,10 @@
-import type {
-  ShapeOutput,
-  ZodRawShapeCompat,
-} from "@modelcontextprotocol/sdk/server/zod-compat.js";
+import type { StandardSchemaWithJSON } from "@modelcontextprotocol/server";
 
-export type { ShapeOutput, ZodRawShapeCompat };
+export type { StandardSchemaWithJSON };
 
-/** Handler args with optional Zod fields as optional keys (ShapeOutput requires every key). */
-export type ToolInput<Shape extends ZodRawShapeCompat> = {
-  [K in keyof Shape as undefined extends ShapeOutput<Shape>[K] ? K : never]?: ShapeOutput<Shape>[K];
-} & {
-  [K in keyof Shape as undefined extends ShapeOutput<Shape>[K] ? never : K]: ShapeOutput<Shape>[K];
-};
+/** Parsed tool handler args from a Standard Schema input. */
+export type ToolInput<S extends StandardSchemaWithJSON> =
+  StandardSchemaWithJSON.InferOutput<S>;
 
 export type JsonPrimitive = string | number | boolean | null;
 export type JsonObject = { [key: string]: JsonValue };
@@ -22,19 +16,22 @@ export interface ServerConfig {
   version: string;
 }
 
-type BivariantHandler<TInput extends ZodRawShapeCompat, TResult extends JsonValue | void> = {
+type BivariantHandler<
+  TInput extends StandardSchemaWithJSON,
+  TResult extends JsonValue | void,
+> = {
   bivarianceHack(args: ToolInput<TInput>): Promise<TResult> | TResult;
 }["bivarianceHack"];
 
 export interface ToolDefinition<
-  TInput extends ZodRawShapeCompat = ZodRawShapeCompat,
+  TInput extends StandardSchemaWithJSON = StandardSchemaWithJSON,
   TResult extends JsonValue | void = JsonObject,
 > {
   name: string;
   description: string;
   inputSchema: TInput;
-  outputSchema?: ZodRawShapeCompat;
+  outputSchema?: StandardSchemaWithJSON;
   handler: BivariantHandler<TInput, TResult>;
 }
 
-export type RegisterableTool = ToolDefinition<ZodRawShapeCompat, JsonValue | void>;
+export type RegisterableTool = ToolDefinition<StandardSchemaWithJSON, JsonValue | void>;

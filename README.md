@@ -2,29 +2,34 @@
 
 Shared MCP SDK wrapper for `@achmadya-dev` servers: stdio transport, tool registration, JSON-safe responses, and env helpers.
 
+Built on **MCP TypeScript SDK v2** (`@modelcontextprotocol/server`). Tool schemas use [Standard Schema](https://standardschema.dev/) — Zod v4 works natively with MCP.
+
 ## Install
 
 ```bash
-pnpm add @achmadya-dev/mcp-core
+pnpm add @achmadya-dev/mcp-core zod
 ```
 
 Installed automatically as a dependency of `@achmadya-dev/mcp-*-query` servers.
 
 ## Usage
 
+Zod v4 implements Standard Schema natively — pass `z.object(...)` directly to `inputSchema` / `outputSchema`:
+
 ```typescript
-import { defineTool, schema, startMcpServer, envStr, type ToolDefinition } from "@achmadya-dev/mcp-core";
+import * as z from "zod";
+import { defineTool, startMcpServer, envStr, type ToolDefinition } from "@achmadya-dev/mcp-core";
 
 const myTool = defineTool({
   name: "my_tool",
   description: "Does something",
-  inputSchema: {
-    name: schema.string().describe("Item name"),
-  },
-  outputSchema: {
-    ok: schema.boolean(),
-  },
-  handler: async (args) => ({ ok: true }),
+  inputSchema: z.object({
+    name: z.string().describe("Item name"),
+  }),
+  outputSchema: z.object({
+    ok: z.boolean(),
+  }),
+  handler: async ({ name }) => ({ ok: true }),
 });
 
 await startMcpServer({
@@ -34,14 +39,24 @@ await startMcpServer({
 });
 ```
 
+Tools with no parameters:
+
+```typescript
+defineTool({
+  name: "ping",
+  description: "Health check",
+  inputSchema: z.object({}),
+  handler: async () => ({ status: "ok" }),
+});
+```
+
 ## Exports
 
 - `Server`, `defineTool`, `ToolError`, `startMcpServer`
 - `envStr`, `envInt`, `envBool`
-- `schema`, `safeParse` — validation abstraction (Zod-backed today; consumers do not import Zod)
-- Types: `Schema`, `InferSchema`, `RawShape`, `ParseResult`, `ToolDefinition`, `JsonValue`, `RegisterableTool`, `ServerConfig`, …
+- Types: `ToolDefinition`, `ToolInput`, `JsonValue`, `RegisterableTool`, `ServerConfig`, `StandardSchemaWithJSON`, …
 
-SQL schemas, query validation, and database drivers stay in each `@achmadya-dev/mcp-*-query` package.
+Schema builders and runtime validation stay in each `@achmadya-dev/mcp-*` package.
 
 ## Release
 
@@ -58,4 +73,3 @@ Uses [Changesets](https://github.com/changesets/changesets) — same flow as [`a
 3. Merge that PR. Next push to `main` publishes to npm (`@achmadya-dev/mcp-core`).
 
 **Remote prerequisites:** GitHub secret `NPM_TOKEN` (npm automation token with publish access to `@achmadya-dev`).
-
