@@ -1,6 +1,6 @@
 {
   "name": "@achmadya-dev/mcp-core",
-  "version": "0.3.3",
+  "version": "0.5.0",
   "description": "Shared MCP server runtime, types, and env helpers for @achmadya-dev MCP packages",
   "type": "module",
   "author": "achmadya",
@@ -20,7 +20,19 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
+    },
+    "./ext-apps": {
+      "types": "./dist/ext-apps.d.ts",
+      "import": "./dist/ext-apps.js"
     }
+  },
+  "peerDependenciesMeta": {
+    "@modelcontextprotocol/ext-apps": {
+      "optional": true
+    }
+  },
+  "peerDependencies": {
+    "@modelcontextprotocol/ext-apps": "^1.7.0"
   },
   "files": [
     "dist"
@@ -41,10 +53,14 @@
   },
   "dependencies": {
     "@cfworker/json-schema": "^4.1.1",
+    "@modelcontextprotocol/express": "2.0.0-alpha.2",
+    "@modelcontextprotocol/node": "2.0.0-alpha.2",
     "@modelcontextprotocol/server": "2.0.0-alpha.2"
   },
   "devDependencies": {
     "@changesets/cli": "2.29.8",
+    "@modelcontextprotocol/ext-apps": "1.7.4",
+    "@types/express": "^5.0.0",
     "@types/node": "22.10.0",
     "husky": "9.1.7",
     "typescript": "5.7.2"

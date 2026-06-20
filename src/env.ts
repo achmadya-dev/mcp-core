@@ -1,3 +1,5 @@
+import type { McpTransport } from "./types.js";
+
 export function envBool(name: string, defaultVal = false): boolean {
   const v = Reflect.get(process.env, name);
   if (v === undefined) return defaultVal;
@@ -16,4 +18,10 @@ export function envStr(name: string, defaultVal = ""): string {
   if (raw === undefined) return defaultVal;
   const v = raw.trim();
   return v || defaultVal;
+}
+
+export function envTrans(explicit?: McpTransport): McpTransport {
+  if (explicit) return explicit;
+  const raw = envStr("TRANSPORT", "stdio").toLowerCase();
+  return raw === "http" ? "http" : "stdio";
 }

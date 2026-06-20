@@ -1,12 +1,18 @@
-export { Server, ToolError, defineTool, startMcpServer } from "./server.js";
-export { envBool, envInt, envStr } from "./env.js";
+export { McpApp, createMcpApp, runMcp } from "./mcp-app.js";
+export { defineTool, registerTool, registerTools, ToolError } from "./tools.js";
+export { envBool, envInt, envStr, envTrans } from "./env.js";
 export type {
+  CreateMcpAppOptions,
+  HttpTransportOptions,
   JsonArray,
   JsonObject,
   JsonPrimitive,
   JsonValue,
+  McpAppConfig,
+  McpSetupHook,
+  McpTransport,
   RegisterableTool,
-  ServerConfig,
+  RunMcpOptions,
   StandardSchemaWithJSON,
   ToolDefinition,
   ToolInput,
