@@ -100,6 +100,7 @@ export async function runMcp(
 export async function runMcp(
   options: RunMcpOptions & { transport: "http" },
 ): Promise<HttpServer>;
+export async function runMcp(options: RunMcpOptions): Promise<void | HttpServer>;
 export async function runMcp(options: RunMcpOptions): Promise<void | HttpServer> {
   const transport = envTrans(options.transport);
   const app = createMcpApp({

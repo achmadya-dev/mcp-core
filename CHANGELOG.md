@@ -1,5 +1,11 @@
 # @achmadya-dev/mcp-core
 
+## 0.5.1
+
+### Patch Changes
+
+- Fix `runMcp` TypeScript overloads so `transport` is optional when omitted.
+
 ## 0.5.0
 
 ### Minor Changes
