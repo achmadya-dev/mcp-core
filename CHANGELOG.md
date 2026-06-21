@@ -1,5 +1,11 @@
 # @achmadya-dev/mcp-core
 
+## 0.7.0
+
+### Minor Changes
+
+- 5d23f13: Add optional `healthCheck` startup probe. When it fails, tools are registered but disabled so MCP clients see zero active tools.
+
 ## 0.6.0
 
 ### Minor Changes
