@@ -14,9 +14,8 @@ export type { CallToolResult };
 /**
  * Type guard: checks whether a value is already a complete MCP tool result.
  *
- * Use this when an internal helper may return either plain data (`{ rows: [...] }`)
- * or a ready-made result from {@link fail} / {@link ok}. Without this check, wrapping
- * a `CallToolResult` again would produce an invalid nested shape.
+ * Use when an internal helper may return either plain data or a result from
+ * {@link fail} / {@link ok} / {@link content} — avoid wrapping twice.
  *
  * @example
  * ```ts
@@ -42,6 +41,7 @@ export function isCalled(value: unknown): value is CallToolResult {
  * @example
  * ```ts
  * return ok({ rows: data, count: data.length });
+ * return ok("Migration applied.");
  * return ok("plain string", { structured: false });
  * ```
  */
@@ -93,21 +93,6 @@ export function fail(error: string | Error | unknown): CallToolResult {
 }
 
 /**
- * Build a successful result with a single text block and no `structuredContent`.
- *
- * Use when the response is human-readable prose only (status messages, logs, markdown)
- * and clients do not need typed structured data.
- *
- * @example
- * ```ts
- * return text("Migration applied successfully.");
- * ```
- */
-export function text(message: string): CallToolResult {
-  return { content: [{ type: "text", text: message }] };
-}
-
-/**
  * Build a result from one or more MCP content blocks.
  *
  * Use when a single text string is not enough — e.g. a caption plus an image,
@@ -136,34 +121,4 @@ export function content(
     content: blocks,
     ...(options?.structured !== undefined ? { structuredContent: options.structured } : {}),
   };
-}
-
-/**
- * Normalize any handler return value into a valid {@link CallToolResult}.
- *
- * - Already a result (`isCalled`) → returned unchanged.
- * - `null` / `undefined` → empty success `{}`.
- * - Plain JSON → wrapped via {@link ok}.
- *
- * Shorthand for the `isCalled` + `ok` branch pattern when delegating to helpers
- * that mix error results and raw data.
- *
- * @example
- * ```ts
- * async function runQuery(sql: string) {
- *   if (!sql.trim()) return fail("SQL is required");
- *   return { rows: await db.query(sql) };
- * }
- *
- * handler: async ({ sql }) => call(await runQuery(sql));
- * ```
- */
-export function call(value: JsonValue | CallToolResult | null | undefined): CallToolResult {
-  if (isCalled(value)) {
-    return value;
-  }
-  if (value == null) {
-    return ok({});
-  }
-  return ok(value);
 }
