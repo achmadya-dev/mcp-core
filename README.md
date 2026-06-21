@@ -51,6 +51,38 @@ Configure in Cursor (stdio — client spawns the process):
 }
 ```
 
+## Architecture
+
+One `runMcp()` call = one MCP instance (one process, one transport).
+
+```mermaid
+flowchart TB
+  subgraph runMcp["runMcp(options)"]
+    tools["tools: defineTool[]"]
+    setup["setup(server)"]
+    http["http.setupRoutes(app)"]
+  end
+
+  tools --> bindTools["bindTools → server.registerTool + handler wrap"]
+  setup --> sdk["SDK native: MCP Apps, resources, custom _meta"]
+  http --> express["Express routes: /health, /api/…"]
+
+  bindTools --> mcp["MCP protocol /mcp"]
+  sdk --> mcp
+
+  transport{{"transport?"}}
+  transport -->|stdio| pipe["stdin/stdout — Cursor spawns process"]
+  transport -->|http| port["HTTP :PORT/mcp — remote + MCP Apps"]
+```
+
+| Hook | Use for |
+|------|---------|
+| `tools` | Standard tools from `defineTool` (auto-wrap JSON, `ToolError` → `fail`) |
+| `setup(server)` | SDK-native MCP features (`registerAppTool`, resources, custom `_meta`) |
+| `http.setupRoutes(app)` | Extra HTTP endpoints on the same port (health, webhooks) |
+
+Need **both stdio and HTTP**? Run **two separate instances** (two processes) — not one `runMcp` with dual transport.
+
 ## HTTP transport
 
 Same tools and config — set `transport: "http"` or env `TRANSPORT=http`:
@@ -268,10 +300,65 @@ Cursor config (HTTP — MCP Apps hosts need Streamable HTTP):
 
 `createMcpApp` + `await app.createServer()` works the same way for manual SDK wiring.
 
+## Tool results
+
+MCP tools must respond with a `CallToolResult`: a `content` array (text, image, …) plus
+optional `structuredContent` and `isError`. With `defineTool`, you have three ways to
+produce that shape:
+
+1. **Return plain JSON** — mcp-core auto-wraps it as `ok()` (simplest path).
+2. **Return helpers** — `ok`, `fail`, `text`, `content` for explicit control.
+3. **Throw `ToolError`** — caught by the wrapper and converted to `fail()`.
+
+Use helpers when you need errors without throwing, plain text without structured data,
+multiple content blocks (e.g. text + image), or when internal helpers mix raw data and
+ready-made results (normalize with `call()` or check with `isCalled()`).
+
+```typescript
+import { defineTool, ok, fail, text, content, call, ToolError } from "@achmadya-dev/mcp-core";
+
+// 1. Explicit success / error
+defineTool({
+  name: "query",
+  description: "Run SQL",
+  inputSchema: z.object({ sql: z.string() }),
+  handler: async ({ sql }) => {
+    if (!sql.trim()) return fail("SQL is required");
+    return ok({ rows: await db.query(sql) });
+  },
+});
+
+// 2. Plain JSON still works — no helper required
+handler: async ({ sql }) => ({ rows: await db.query(sql) });
+
+// 3. Helper returns fail OR plain data — normalize with call()
+async function runQuery(sql: string) {
+  if (!sql.trim()) return fail("SQL is required");
+  return { rows: await db.query(sql) };
+}
+handler: async ({ sql }) => call(await runQuery(sql));
+
+// 4. Multiple content blocks
+return content([
+  { type: "text", text: "Screenshot:" },
+  { type: "image", data: base64, mimeType: "image/png" },
+]);
+```
+
+| Helper | When to use |
+|--------|-------------|
+| `ok(data)` | Success; object values get JSON text + `structuredContent` |
+| `fail(msg)` | Expected error; sets `isError: true` |
+| `text(msg)` | Success with one text block only (no structured data) |
+| `content(blocks)` | Multiple blocks or custom types (text, image, …) |
+| `call(value)` | Helper may return data or `fail()` — normalizes either way |
+| `isCalled(value)` | Manual branch: already a `CallToolResult` vs plain data |
+
 ## Exports
 
 - `runMcp`, `createMcpApp`, `McpApp`
-- `defineTool`, `ToolError`, `registerTool`, `registerTools`
+- `defineTool`, `ToolError`
+- `ok`, `fail`, `text`, `content`, `call`, `isCalled` — tool result helpers
 - `envStr`, `envInt`, `envBool`, `envTrans`
 - `@achmadya-dev/mcp-core/ext-apps` — `registerAppResource`, `registerAppTool`, `RESOURCE_MIME_TYPE` (requires peer `@modelcontextprotocol/ext-apps`)
 - Types: `RunMcpOptions`, `McpSetupHook`, `McpTransport`, `HttpTransportOptions`, `McpAppConfig`, …
@@ -287,7 +374,26 @@ Schema builders and runtime validation stay in each `@achmadya-dev/mcp-*` packag
 | `Server` | `McpApp` / `createMcpApp()` |
 | `ServerConfig` | `McpAppConfig` |
 | `StreamableHttpMcpOptions` | `HttpTransportOptions` |
-| `registerToolOnServer` | `registerTool` |
+| `registerToolOnServer` | `tools` array + `setup(server)` with `server.registerTool` |
+
+## Migration from 0.5.x
+
+| 0.5.x | 0.6.x |
+|---|---|
+| `registerTool(server, tool)` | `tools: [tool]` or `setup(server)` with `server.registerTool` |
+| `registerTools(server, tools)` | `tools: [...]` on `runMcp` / `createMcpApp` |
+| Manual `CallToolResult` in every handler | Optional: `ok`, `fail`, `text`, `content`, `call`, `isCalled` |
+
+`defineTool` handlers can still return plain JSON — wrapping is unchanged. Helpers are for explicit control or SDK `setup` handlers.
+
+## Development
+
+```bash
+pnpm install
+pnpm run build
+pnpm test        # 23 unit tests (also runs on pre-commit)
+pnpm changeset   # before shipping user-facing changes
+```
 
 ## Release
 

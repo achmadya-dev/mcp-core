@@ -6,8 +6,19 @@ import { envInt } from "./env.js";
 import type { HttpTransportOptions, McpServerFactory } from "./types.js";
 
 /**
- * Stateless Streamable HTTP MCP host — one server instance per request.
- * Uses {@link NodeStreamableHTTPServerTransport} + {@link createMcpExpressApp}.
+ * Low-level Streamable HTTP server for MCP.
+ *
+ * Creates an Express app, handles `POST`/`GET` on the MCP path, and spins up a
+ * **new** {@link SdkMcpServer} per request (stateless — no session stickiness).
+ * {@link runMcp} with `transport: "http"` calls this internally; use directly
+ * only when you need custom HTTP wiring.
+ *
+ * @example
+ * ```ts
+ * const app = createMcpApp({ name: "My MCP", version: "1.0.0", tools: [myTool] });
+ * const http = await startHttpTransport(app, { port: 3001, path: "/mcp" });
+ * // Cursor: { "url": "http://127.0.0.1:3001/mcp" }
+ * ```
  */
 export async function startHttpTransport(
   app: McpServerFactory,

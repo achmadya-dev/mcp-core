@@ -1,5 +1,7 @@
 export { McpApp, createMcpApp, runMcp } from "./mcp-app.js";
-export { defineTool, registerTool, registerTools, ToolError } from "./tools.js";
+export { defineTool, ToolError } from "./tools.js";
+export { call, content, fail, isCalled, ok, text } from "./tool-result.js";
+export type { CallToolResult } from "./tool-result.js";
 export { envBool, envInt, envStr, envTrans } from "./env.js";
 export type {
   CreateMcpAppOptions,
