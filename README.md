@@ -233,165 +233,95 @@ await runMcp({
 });
 ```
 
-### MCP Apps (draw.io inline UI)
-
-For [draw.io MCP App](https://github.com/jgraph/drawio-mcp)-style inline diagrams, install `@modelcontextprotocol/ext-apps` and import helpers from the mcp-core subpath:
-
-```bash
-pnpm add @achmadya-dev/mcp-core @modelcontextprotocol/ext-apps zod
-```
-
-```typescript
-import * as z from "zod";
-import { runMcp } from "@achmadya-dev/mcp-core";
-import {
-  registerAppResource,
-  registerAppTool,
-  RESOURCE_MIME_TYPE,
-} from "@achmadya-dev/mcp-core/ext-apps";
-
-const UI_URI = "ui://drawio/view.html";
-
-await runMcp({
-  name: "Draw.io MCP",
-  version: "1.0.0",
-  tools: [], // UI tools registered in setup via registerAppTool
-  transport: "http",
-  http: { port: 3001 },
-  setup(server) {
-    registerAppResource(
-      server,
-      "Draw.io View",
-      UI_URI,
-      { mimeType: RESOURCE_MIME_TYPE },
-      async () => ({
-        contents: [{ uri: UI_URI, mimeType: RESOURCE_MIME_TYPE, text: buildDrawioHtml() }],
-      }),
-    );
-
-    registerAppTool(
-      server,
-      "create_diagram",
-      {
-        description: "Render a draw.io diagram inline",
-        inputSchema: z.object({ xml: z.string() }),
-        _meta: { ui: { resourceUri: UI_URI } },
-      },
-      async ({ xml }) => ({
-        content: [{ type: "text", text: xml }],
-        structuredContent: { xml },
-      }),
-    );
-  },
-});
-```
-
-Cursor config (HTTP — MCP Apps hosts need Streamable HTTP):
-
-```json
-{
-  "mcpServers": {
-    "drawio": {
-      "url": "http://127.0.0.1:3001/mcp"
-    }
-  }
-}
-```
-
 `createMcpApp` + `await app.createServer()` works the same way for manual SDK wiring.
 
 ## Tool results
 
-MCP tools must respond with a `CallToolResult`: a `content` array (text, image, …) plus
-optional `structuredContent` and `isError`. With `defineTool`, you have three ways to
-produce that shape:
+MCP tools respond with a `CallToolResult` (`content` array + optional `structuredContent` / `isError`).
+With `defineTool`, return plain JSON (auto-wrapped), the helpers below, or throw `ToolError` → `fail()`.
 
-1. **Return plain JSON** — mcp-core auto-wraps it as `ok()` (simplest path).
-2. **Return helpers** — `ok`, `fail`, `text`, `content` for explicit control.
-3. **Throw `ToolError`** — caught by the wrapper and converted to `fail()`.
+### `ok(data)` — success
 
-Use helpers when you need errors without throwing, plain text without structured data,
-multiple content blocks (e.g. text + image), or when internal helpers mix raw data and
-ready-made results (normalize with `call()` or check with `isCalled()`).
+Object values become formatted JSON text **and** `structuredContent`. Strings become a single text block.
 
 ```typescript
-import { defineTool, ok, fail, text, content, call, ToolError } from "@achmadya-dev/mcp-core";
+import { defineTool, ok } from "@achmadya-dev/mcp-core";
 
-// 1. Explicit success / error
 defineTool({
   name: "query",
   description: "Run SQL",
   inputSchema: z.object({ sql: z.string() }),
   handler: async ({ sql }) => {
-    if (!sql.trim()) return fail("SQL is required");
-    return ok({ rows: await db.query(sql) });
+    const rows = await db.query(sql);
+    return ok({ rows, count: rows.length });
   },
 });
 
-// 2. Plain JSON still works — no helper required
-handler: async ({ sql }) => ({ rows: await db.query(sql) });
+return ok("Migration applied.");
+```
 
-// 3. Helper returns fail OR plain data — normalize with call()
-async function runQuery(sql: string) {
-  if (!sql.trim()) return fail("SQL is required");
-  return { rows: await db.query(sql) };
-}
-handler: async ({ sql }) => call(await runQuery(sql));
+Equivalent to returning `{ rows, count }` directly from the handler (auto-wrapped).
 
-// 4. Multiple content blocks
-return content([
-  { type: "text", text: "Screenshot:" },
-  { type: "image", data: base64, mimeType: "image/png" },
-]);
+### `fail(msg)` — expected error
+
+Sets `isError: true`. Same outcome as `throw new ToolError(msg)`.
+
+```typescript
+import { defineTool, fail } from "@achmadya-dev/mcp-core";
+
+if (!sql.trim()) return fail("SQL is required");
+return fail(new Error("Connection refused"));
+```
+
+### `content(blocks)` — custom blocks
+
+Multiple content blocks (text, image, …). Optional `structured` metadata or `isError: true`.
+
+```typescript
+import { defineTool, content } from "@achmadya-dev/mcp-core";
+
+defineTool({
+  name: "screenshot",
+  description: "Capture screen",
+  inputSchema: z.object({}),
+  handler: async () => {
+    const base64 = await captureScreen();
+    return content(
+      [
+        { type: "text", text: "Screenshot:" },
+        { type: "image", data: base64, mimeType: "image/png" },
+      ],
+      { structured: { capturedAt: new Date().toISOString() } },
+    );
+  },
+});
+
+return content([{ type: "text", text: "Invalid input" }], { isError: true });
 ```
 
 | Helper | When to use |
 |--------|-------------|
-| `ok(data)` | Success; object values get JSON text + `structuredContent` |
+| `ok(data)` | Success — object → JSON + `structuredContent`, string → text |
 | `fail(msg)` | Expected error; sets `isError: true` |
-| `text(msg)` | Success with one text block only (no structured data) |
-| `content(blocks)` | Multiple blocks or custom types (text, image, …) |
-| `call(value)` | Helper may return data or `fail()` — normalizes either way |
-| `isCalled(value)` | Manual branch: already a `CallToolResult` vs plain data |
+| `content(blocks)` | Multiple blocks (text, image, …) |
 
 ## Exports
 
 - `runMcp`, `createMcpApp`, `McpApp`
 - `defineTool`, `ToolError`
-- `ok`, `fail`, `text`, `content`, `call`, `isCalled` — tool result helpers
+- `ok`, `fail`, `content`, `isCalled` — tool result helpers
 - `envStr`, `envInt`, `envBool`, `envTrans`
 - `@achmadya-dev/mcp-core/ext-apps` — `registerAppResource`, `registerAppTool`, `RESOURCE_MIME_TYPE` (requires peer `@modelcontextprotocol/ext-apps`)
 - Types: `RunMcpOptions`, `McpSetupHook`, `McpTransport`, `HttpTransportOptions`, `McpAppConfig`, …
 
 Schema builders and runtime validation stay in each `@achmadya-dev/mcp-*` package.
 
-## Migration from 0.4.x
-
-| 0.4.x | 0.5.x |
-|---|---|
-| `startMcpServer({ name, version, tools })` | `runMcp({ name, version, tools })` |
-| `startStreamableHttpMcp({ createMcpServer })` | `runMcp({ name, version, tools, transport: "http", http: { port } })` |
-| `Server` | `McpApp` / `createMcpApp()` |
-| `ServerConfig` | `McpAppConfig` |
-| `StreamableHttpMcpOptions` | `HttpTransportOptions` |
-| `registerToolOnServer` | `tools` array + `setup(server)` with `server.registerTool` |
-
-## Migration from 0.5.x
-
-| 0.5.x | 0.6.x |
-|---|---|
-| `registerTool(server, tool)` | `tools: [tool]` or `setup(server)` with `server.registerTool` |
-| `registerTools(server, tools)` | `tools: [...]` on `runMcp` / `createMcpApp` |
-| Manual `CallToolResult` in every handler | Optional: `ok`, `fail`, `text`, `content`, `call`, `isCalled` |
-
-`defineTool` handlers can still return plain JSON — wrapping is unchanged. Helpers are for explicit control or SDK `setup` handlers.
-
 ## Development
 
 ```bash
 pnpm install
 pnpm run build
-pnpm test        # 23 unit tests (also runs on pre-commit)
+pnpm test        # 22 unit tests (also runs on pre-commit)
 pnpm changeset   # before shipping user-facing changes
 ```
 
