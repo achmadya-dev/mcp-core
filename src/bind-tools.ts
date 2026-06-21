@@ -9,7 +9,12 @@ import { ToolError } from "./tools.js";
 import type { JsonValue, RegisterableTool } from "./types.js";
 
 /** Wire {@link defineTool} definitions onto an SDK server (used by {@link McpApp.createServer}). */
-export function bindTools(server: SdkMcpServer, tools: readonly RegisterableTool[]): void {
+export function bindTools(
+  server: SdkMcpServer,
+  tools: readonly RegisterableTool[],
+  options?: { active?: boolean },
+): void {
+  const active = options?.active ?? true;
   for (const definition of tools) {
     const config = {
       title: definition.name,
@@ -21,7 +26,7 @@ export function bindTools(server: SdkMcpServer, tools: readonly RegisterableTool
     const handler = definition.handler;
     const hasOutputSchema = definition.outputSchema !== undefined;
 
-    server.registerTool(
+    const registered = server.registerTool(
       definition.name,
       config,
       (async (args: unknown, _ctx: unknown) => {
@@ -53,5 +58,6 @@ export function bindTools(server: SdkMcpServer, tools: readonly RegisterableTool
         }
       }) as ToolCallback<StandardSchemaWithJSON>,
     );
+    if (!active) registered.disable();
   }
 }

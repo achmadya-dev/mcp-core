@@ -74,6 +74,11 @@ export type RunMcpOptions = McpAppConfig & {
   transport?: McpTransport;
   http?: HttpTransportOptions;
   /**
+   * Optional startup probe. When it throws, no tools are registered (MCP stays
+   * connected but reports zero tools until the client reconnects after the backend is up).
+   */
+  healthCheck?: () => Promise<void>;
+  /**
    * Called once per server instance with the SDK server. Use for MCP Apps, resources,
    * prompts, or tools that cannot go through {@link defineTool}.
    * @example
@@ -146,6 +151,7 @@ export type McpSetupHook = (server: SdkMcpServer) => void | Promise<void>;
 export type CreateMcpAppOptions = McpAppConfig & {
   tools: readonly RegisterableTool[];
   setup?: McpSetupHook;
+  healthCheck?: () => Promise<void>;
 };
 
 /** Minimal surface used by transport modules. */

@@ -15,6 +15,20 @@ import type {
   RunMcpOptions,
 } from "./types.js";
 
+export async function isHealthCheckActive(
+  healthCheck: () => Promise<void>,
+  logLabel: string,
+): Promise<boolean> {
+  try {
+    await healthCheck();
+    return true;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    console.error(`[${logLabel}] Connection check failed: ${message}`);
+    return false;
+  }
+}
+
 /**
  * Holds MCP server config, the tool list, and an optional setup hook.
  *
@@ -33,16 +47,19 @@ export class McpApp {
   private readonly config: McpAppConfig;
   private readonly tools: RegisterableTool[];
   private readonly setup?: McpSetupHook;
+  private readonly healthCheck?: () => Promise<void>;
   private activeServer: SdkMcpServer | null = null;
 
   constructor(
     config: McpAppConfig,
     tools: readonly RegisterableTool[] = [],
     setup?: McpSetupHook,
+    healthCheck?: () => Promise<void>,
   ) {
     this.config = config;
     this.tools = [...tools];
     this.setup = setup;
+    this.healthCheck = healthCheck;
   }
 
   /**
@@ -81,7 +98,13 @@ export class McpApp {
       name: this.config.name,
       version: this.config.version,
     });
-    bindTools(server, this.tools);
+
+    let active = true;
+    if (this.healthCheck) {
+      active = await isHealthCheckActive(this.healthCheck, this.config.name);
+    }
+
+    bindTools(server, this.tools, { active });
     if (this.setup) await this.setup(server);
     return server;
   }
@@ -128,6 +151,7 @@ export function createMcpApp(options: CreateMcpAppOptions): McpApp {
     { name: options.name, version: options.version },
     options.tools,
     options.setup,
+    options.healthCheck,
   );
 }
 
@@ -171,6 +195,7 @@ export async function runMcp(options: RunMcpOptions): Promise<void | HttpServer>
     version: options.version,
     tools: options.tools,
     setup: options.setup,
+    healthCheck: options.healthCheck,
   });
 
   if (transport === "http") {
