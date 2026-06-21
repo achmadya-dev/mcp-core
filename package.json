@@ -42,7 +42,7 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "test": "tsx --test test/**/*.test.ts",
+    "test": "tsx --test test/*.test.ts",
     "prepare": "husky",
     "prepublishOnly": "pnpm run build",
     "changeset": "changeset",
