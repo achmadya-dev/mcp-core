@@ -1,6 +1,6 @@
 {
   "name": "@achmadya-dev/mcp-core",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "Shared MCP server runtime, types, and env helpers for @achmadya-dev MCP packages",
   "type": "module",
   "author": "achmadya",

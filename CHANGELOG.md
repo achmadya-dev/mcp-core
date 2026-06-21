@@ -1,5 +1,11 @@
 # @achmadya-dev/mcp-core
 
+## 0.6.0
+
+### Minor Changes
+
+- 9e9304d: Add tool result helpers (`ok`, `fail`, `text`, `content`, `call`, `isCalled`) and `CallToolResult` type export. Remove exported `registerTool` / `registerTools` — register standard tools via the `tools` array; use `setup(server)` with `server.registerTool` for SDK-native tools. Add unit tests and architecture docs.
+
 ## 0.5.1
 
 ### Patch Changes
