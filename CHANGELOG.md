@@ -1,5 +1,11 @@
 # @achmadya-dev/mcp-core
 
+## 0.8.0
+
+### Minor Changes
+
+- c46fe8b: Remove exported `text` and `call` tool result helpers. Use `ok()` for plain text and JSON success; keep `fail()`, `content()`, and `isCalled()` for errors, multi-block results, and type checks.
+
 ## 0.7.0
 
 ### Minor Changes
